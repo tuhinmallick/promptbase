@@ -9,11 +9,11 @@ test_problem = "MMLU_test"
 
 model_name = "gpt-4-1106-preview"
 
-if not os.path.exists(problem_files[dev_problem] + ".json.gz"):
-    embed_file(problem_files[dev_problem] + ".json")
+if not os.path.exists(f"{problem_files[dev_problem]}.json.gz"):
+    embed_file(f"{problem_files[dev_problem]}.json")
 
-if not os.path.exists(problem_files[test_problem] + ".json.gz"):
-    embed_file(problem_files[test_problem] + ".json")
+if not os.path.exists(f"{problem_files[test_problem]}.json.gz"):
+    embed_file(f"{problem_files[test_problem]}.json")
 
 MMLU.generate_solutions_without_rank(dev_problem, run_name=f"{dev_problem}/cot", model=model_name)
 MMLU.run_cot_without_rank(test_problem, run_name=f"{test_problem}/cot_knn",

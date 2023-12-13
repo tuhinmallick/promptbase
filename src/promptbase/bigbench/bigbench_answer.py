@@ -720,7 +720,7 @@ def do_chat_answer(cot_result_path, test_name):
         }
         url = os.getenv("AZURE_OPENAI_API_URL")
         attempts = 0
-        while True and attempts < 10:
+        while attempts < 10:
             try:
                 attempts += 1
                 response = requests.post(url, headers=header, json=data, timeout=600)
@@ -793,7 +793,7 @@ def do_completion_answer(cot_result_path, test_name):
         }
         url = os.getenv("AZURE_OPENAI_API_URL")
         attempts = 0
-        while True and attempts < 10:
+        while attempts < 10:
             try:
                 attempts += 1
                 response = requests.post(url, headers=header, json=data, timeout=600)
@@ -850,11 +850,7 @@ def process_answers(test_name: str, api_type="chat"):
     """
     Processes chain-of-thought answers to produce the label in the expected format.
     """
-    if test_name == "all":
-        subjects = few_shot_examples.keys()
-    else:
-        subjects = [test_name]
-
+    subjects = few_shot_examples.keys() if test_name == "all" else [test_name]
     print(f"Processing answers for Bigbench subjects: {subjects}")
 
     threads = []

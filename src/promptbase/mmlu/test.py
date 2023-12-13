@@ -11,11 +11,11 @@ dev_name = "MMLU_chemistry"
 test_name = "MMLU_chemistry"
 
 # embed questions
-if not os.path.exists(problem_files[dev_name] + ".json.gz"):
-    embed_file(problem_files[dev_name] + ".json")
+if not os.path.exists(f"{problem_files[dev_name]}.json.gz"):
+    embed_file(f"{problem_files[dev_name]}.json")
 
-if not os.path.exists(problem_files[test_name] + ".json.gz"):
-    embed_file(problem_files[test_name] + ".json")
+if not os.path.exists(f"{problem_files[test_name]}.json.gz"):
+    embed_file(f"{problem_files[test_name]}.json")
 
 # generate cot solutions on dev set
 if not os.path.exists(f"mmlu/expt/{dev_name}/cot/result.json.gz"):

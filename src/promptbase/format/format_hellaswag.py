@@ -13,7 +13,7 @@ def process_jsonl_file(file_path, split_name):
     questions = []
     with open(file_path, "r", encoding="utf-8") as file:
         lines = file.readlines()
-        for i, json_line in enumerate(lines):
+        for json_line in lines:
             question_data = json.loads(json_line)
             answer_choices = {
                 chr(65 + i): answer for i, answer in enumerate(question_data["endings"])
