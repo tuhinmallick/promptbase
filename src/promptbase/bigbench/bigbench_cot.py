@@ -68,9 +68,12 @@ def do_chat_cot(bbh_test_path, cot_prompt_path, test_name, cot_results_path):
     ]
 
     for question, answer in qa_pairs:
-        few_shot_messages.append({"role": "user", "content": f"{question}"})
-        few_shot_messages.append({"role": "assistant", "content": f"{answer}"})
-
+        few_shot_messages.extend(
+            (
+                {"role": "user", "content": f"{question}"},
+                {"role": "assistant", "content": f"{answer}"},
+            )
+        )
     with open(bbh_test_path, "r", encoding="utf-8") as file:
         example_data = json.load(file)
         for i, example in enumerate(example_data["examples"]):

@@ -46,10 +46,7 @@ def extract_substrings(text):
                         )  # Extract the content inside the braces
                         break
 
-    if len(matches) == 0:
-        return None
-
-    return matches[0]
+    return None if not matches else matches[0]
 
 
 def solve(idx):
@@ -93,26 +90,22 @@ def check_answer(official, student):
 
 def extract_and_convert_fraction(text):
     pattern = r"^\\frac\{(\d+)\}\{(\d+)\}$"
-    match = re.match(pattern, text)
-    if match:
+    if match := re.match(pattern, text):
         numerator, denominator = match.groups()
         return float(numerator) / float(denominator)
 
     pattern = r"^\\frac(\d)(\d)$"
-    match = re.match(pattern, text)
-    if match:
+    if match := re.match(pattern, text):
         numerator, denominator = match.groups()
         return float(numerator) / float(denominator)
 
     pattern = r"^-\\frac\{(\d+)\}\{(\d+)\}$"
-    match = re.match(pattern, text)
-    if match:
+    if match := re.match(pattern, text):
         numerator, denominator = match.groups()
         return -float(numerator) / float(denominator)
 
     pattern = r"^-\\frac(\d)(\d)$"
-    match = re.match(pattern, text)
-    if match:
+    if match := re.match(pattern, text):
         numerator, denominator = match.groups()
         return -float(numerator) / float(denominator)
     return text
@@ -131,10 +124,7 @@ def remove_latex_text_commands(text):
     # Regular expression pattern to match \text{...}
     pattern = r"\\text\{.*?\}"
 
-    # Replace all occurrences of \text{...} with an empty string
-    cleaned_text = re.sub(pattern, "", text, flags=re.DOTALL)
-
-    return cleaned_text
+    return re.sub(pattern, "", text, flags=re.DOTALL)
 
 
 def evaluate():
@@ -173,8 +163,8 @@ def evaluate():
             with open("parse.txt", "a") as f:
                 f.write("=" * 80 + "\n")
                 f.write(f"idx:{idx}\n")
-                f.write("official_answer:" + str(official_answer) + "\n")
-                f.write("gpt_answer:" + str(gpt_answer) + "\n")
+                f.write(f"official_answer:{str(official_answer)}" + "\n")
+                f.write(f"gpt_answer:{str(gpt_answer)}" + "\n")
                 f.write("-" * 40 + "\n")
                 f.write(ds[idx]["solution"] + "\n")
                 f.write("-" * 40 + "\n")

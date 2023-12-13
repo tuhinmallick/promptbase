@@ -60,7 +60,6 @@ def fetch_data():
                 **Question:** {prompt_question}
                 ----
                 **Explanation**:""")}]
-                prompts.append(prompt)
             else:
                 prompt = dedent(f"""\
                 Answer the following reading comprehension **Question** based on the **Passage** below.
@@ -72,19 +71,17 @@ def fetch_data():
                 **Question:** {prompt_question}
                 ----
                 **Explanation**: """)
-                prompts.append(prompt)
-
-
+            prompts.append(prompt)
     if CHAT_MODE:
         computed_idxs = set()
         if os.path.isfile("drops_cot_raw_responses_chat.jsonl"):
             with open("drops_cot_raw_responses_chat.jsonl", "r") as f:
-                computed_idxs = set([json.loads(line)["idx"] for line in f])
+                computed_idxs = {json.loads(line)["idx"] for line in f}
     else:
         computed_idxs = set()
         if os.path.isfile("drops_cot_raw_responses.jsonl"):
             with open("drops_cot_raw_responses.jsonl", "r") as f:
-                computed_idxs = set([json.loads(line)["idx"] for line in f])
+                computed_idxs = {json.loads(line)["idx"] for line in f}
 
 def extract_substrings(text):
     return re.findall(r"```(.*?)```", text, re.DOTALL)
@@ -94,24 +91,23 @@ def solve(idx):
     global answers
     global computed_idxs
     global CHAT_MODE
-   
+
 
     if CHAT_MODE:
-        model_name = "gpt-4-1106-preview"
         reasoning_file_name = "drop_data_cot_reasoning_chat.log"
         answer_file_name = "drop_data_cot_final_chat.log"
         json_file_name = "drops_cot_raw_responses_chat.jsonl"
     else:
-        model_name = "gpt-4-1106-preview"
         reasoning_file_name = "drop_data_cot_reasoning.log"
         answer_file_name = "drop_data_cot_final.log"
         json_file_name = "drops_cot_raw_responses.jsonl"
 
 
+    model_name = "gpt-4-1106-preview"
     if idx in computed_idxs:
         return
-    
-    for retry in range(5):
+
+    for _ in range(5):
         response = text_completion(prompt=prompts[idx], model=model_name, max_tokens=500, log_file=reasoning_file_name, max_trial=5, temperature = 0, stop=["**", '--', '\n'])
 
         if not response['success']:
@@ -121,7 +117,7 @@ def solve(idx):
             substrings = extract_substrings(text)
             substrings = [s for s in substrings if "def " in s]
             code = max(substrings, key=len, default="") if substrings else None
-        
+
         if code:
             break
 
@@ -142,10 +138,10 @@ def solve(idx):
             substrings = extract_substrings(text)
             substrings = [s for s in substrings if "def " in s]
             code = max(substrings, key=len, default="") if substrings else None
-        
+
         if code:
             break
-    
+
     with open(json_file_name, "a") as f:
         f.write(json.dumps({"idx": idx, "response": response_final['response']["choices"][0]["text"], "answers": answers[idx]}) + "\n")
 
@@ -163,18 +159,19 @@ def calculate_accuracy(responses):
         for answer in response['answers']:
             answer_type = answer[0]
             answer_value = answer[1]
-            if answer_type == "span":
-                if check_span(response['response'], answer_value):
-                    match_count += 1
-                    break
-            elif answer_type == "number":
-                if check_number(response['response'], answer_value):
-                    match_count += 1
-                    break
-            elif answer_type == "date":
-                if check_date(response['response'], answer_value):
-                    match_count += 1
-                    break
+            if (
+                answer_type == "date"
+                and check_date(response['response'], answer_value)
+                or answer_type != "date"
+                and answer_type == "number"
+                and check_number(response['response'], answer_value)
+                or answer_type != "date"
+                and answer_type != "number"
+                and answer_type == "span"
+                and check_span(response['response'], answer_value)
+            ):
+                match_count += 1
+                break
     return float(match_count) / float(total_count)
 
 def check_span(response, answer_spans):
@@ -210,17 +207,15 @@ def check_date(response, answer_date):
         try:
             day_position = response_parts.index(answer_date['day'])
             month_position = response_parts.index(answer_date['month'].lower())
-            # If the date is provided as "month day", or "day month".
-            if abs(day_position - month_position) == 1:  
-                response_parts.remove(answer_date['day'])
-                response_parts.remove(answer_date['month'].lower())
-            else:
+            if abs(day_position - month_position) != 1:
                 return False
+            response_parts.remove(answer_date['day'])
+            response_parts.remove(answer_date['month'].lower())
         except ValueError:
             return False
 
     date_parts = ['day', 'month', 'year']
-    
+
     for part in response_parts:
         for date_part in date_parts:
             # If date_part is specified in the answer.
@@ -230,12 +225,10 @@ def check_date(response, answer_date):
                     if re.match(r'\b(\d{4})\b', part) and part == answer_date[date_part]:
                         # print(response_parts, "|", answer_date)
                         return True
-                # Otherwise, match the words irrespective of case.
-                else:
-                    if part.lower() == answer_date[date_part].lower():
-                        # print(response_parts, "|", answer_date)
-                        return True
-                    
+                elif part.lower() == answer_date[date_part].lower():
+                    # print(response_parts, "|", answer_date)
+                    return True
+
     # print(response_parts, "|", answer_date)
     return False
 

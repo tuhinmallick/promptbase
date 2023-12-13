@@ -74,10 +74,7 @@ def prepare_options(options):
 
 def has_common_k_gram(str1, str2, k):
     def generate_k_grams(s, k):
-        if len(s) <= k:
-            return {s}
-        else:
-            return {s[i:i+k] for i in range(len(s) - k)}
+        return {s} if len(s) <= k else {s[i:i+k] for i in range(len(s) - k)}
 
     str1_k_grams = generate_k_grams(str1, k)
     str2_k_grams = generate_k_grams(str2, k)
@@ -101,10 +98,10 @@ def solve(options, problem):
             selected_examples = select_examples(problem, options["examples"], options["example_selector"], options)
         else:
             raise f"Unsupported example_selector: {options['example_selector']}"
-        
+
         # just some safety check to avoid leaking the answer
         selected_examples = [example for example in selected_examples if example["question"].strip() != problem["question"].strip()]
-        
+
         if options.get("balance_answer", False):
             assert options["response_type"] in ["decreasing_order", "MC"]
             target_choices = multiple_random_order(problem["order"], len(selected_examples))
@@ -122,10 +119,15 @@ def solve(options, problem):
                 assert f"\n{target_choice}. " in example["question"] and f"\n{result}. " in example["question"]
 
                 example["question"] = example["question"].replace(f"\n{target_choice}. ", f"\nTMP. ").replace(f"\n{result}. ", f"\n{target_choice}. ").replace(f"\nTMP. ", f"\n{result}. ")
-                example["answer"] = example["answer"].replace(f"[{target_choice}]", f"[TMP]").replace(f"[{result}]", f"[{target_choice}]").replace(f"[TMP]", f"[{result}]")
+                example["answer"] = (
+                    example["answer"]
+                    .replace(f"[{target_choice}]", "[TMP]")
+                    .replace(f"[{result}]", f"[{target_choice}]")
+                    .replace("[TMP]", f"[{result}]")
+                )
 
                 example["question"] = reorder_question(example["question"])
-        
+
         assessments = {}
         if "assessment" in assessments:
             for letter in problem['order']:
@@ -143,7 +145,7 @@ def solve(options, problem):
             max_tokens = 1
         else:
             max_tokens = 500 + retry * 200
-        
+
         if openai_configs.models[model]["type"] == "chat":
             prompt_splits = re.split('## Q|## A', prompt)
             messages = []
@@ -163,7 +165,7 @@ def solve(options, problem):
             response = text_completion(model=model, prompt=messages,  temperature=0.05*retry, max_tokens=max_tokens, log_file=options["log_file"])
         else:
             response = text_completion(model=model, prompt=prompt, temperature=0.05*retry, max_tokens=max_tokens, logprobs=10, stop=["<|diff_marker|>", "## Question"], log_file=options["log_file"])
-        
+
         if response['success']:
             prompt_tokens += response['response']['usage']['prompt_tokens']
             completion_tokens += response['response']['usage']['completion_tokens']
@@ -179,7 +181,7 @@ def solve(options, problem):
 
     if "expt" not in problem:
         problem["expt"] = {}
-    
+
     output = {
         "prompt": prompt,
         "response": response["text"],
@@ -187,18 +189,18 @@ def solve(options, problem):
         "tokens_used_prompt": prompt_tokens,
         "tokens_used_completion": completion_tokens
         }
-    
+
     if type(result) == tuple:
         output["result"] = result[0]
         output["scores"] = result[1]
     else:
         output["result"] = result
-    
+
     if type(output["result"]) is str and len(output["result"]) >= 1:
         output["answer"] = output["result"][-1]
     else:
         output["answer"] = None
-    
+
     problem["expt"][name] = output
 
 def run_experiment(options):

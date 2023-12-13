@@ -17,8 +17,8 @@ def load_answers(file):
 def load_questions(file_path):
     if type(file_path) is str:
         file_path = pathlib.Path(file_path)
-    
-    gz_path = file_path.with_suffix(file_path.suffix + ".gz")
+
+    gz_path = file_path.with_suffix(f"{file_path.suffix}.gz")
     if gz_path.exists():
         print("Found zip file")
         with gzip.open(gz_path, "rt") as f:
@@ -40,7 +40,9 @@ def evaluate(user_answers, reference_answers):
     for x in reference_answers:
         if x["dataset"] == "MMLU":
             x["dataset"] = (
-                x["dataset"] + "_" + "_".join(x["question_number"].split("_")[0:-1])
+                x["dataset"]
+                + "_"
+                + "_".join(x["question_number"].split("_")[:-1])
             )
         answer_dict[x["id"]] = x["correct_answer"]
         total_questions[x["dataset"]] += 1

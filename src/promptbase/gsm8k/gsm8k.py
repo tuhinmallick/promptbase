@@ -37,10 +37,7 @@ def extract_substrings(text):
                         )  # Extract the content inside the braces
                         break
 
-    if len(matches) == 0:
-        return None
-
-    return matches[0]
+    return None if not matches else matches[0]
 
 
 def solve(idx):
@@ -112,8 +109,8 @@ def evaluate():
             with open("parse.txt", "a") as f:
                 f.write("=" * 80 + "\n")
                 f.write(f"idx:{idx}\n")
-                f.write("official_answer:" + str(official_answer) + "\n")
-                f.write("gpt_answer:" + str(gpt_answer) + "\n")
+                f.write(f"official_answer:{str(official_answer)}" + "\n")
+                f.write(f"gpt_answer:{str(gpt_answer)}" + "\n")
                 f.write("-" * 40 + "\n")
                 f.write(ds[idx]["answer"] + "\n")
                 f.write("-" * 40 + "\n")

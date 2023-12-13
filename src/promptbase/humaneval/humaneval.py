@@ -49,14 +49,13 @@ def solve(idx):
 
         if not response["success"]:
             code = None
+        elif chat_mode:
+            text = response["text"]
+            substrings = extract_substrings(text)
+            substrings = [s for s in substrings if "def " in s]
+            code = max(substrings, key=len, default="") if substrings else None
         else:
-            if chat_mode:
-                text = response["text"]
-                substrings = extract_substrings(text)
-                substrings = [s for s in substrings if "def " in s]
-                code = max(substrings, key=len, default="") if substrings else None
-            else:
-                code = prompts[idx] + response["text"]
+            code = prompts[idx] + response["text"]
 
         if code:
             break
@@ -74,9 +73,7 @@ def evaluate():
     # open gpt4.jsonl
     rows = []
     with open("gpt4_text_fixed.jsonl") as f:
-        for line in f:
-            rows.append(json.loads(line))
-
+        rows.extend(json.loads(line) for line in f)
     env = {
         "hashlib": hashlib,
         "re": re,

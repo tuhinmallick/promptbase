@@ -10,7 +10,7 @@ def embed_file(file_name):
     for (row, embedding) in tqdm(zip(ds, embeddings)):
         row['embedding'] = embedding
 
-    with gzip.open(file_name + ".gz", 'wt') as f:
+    with gzip.open(f"{file_name}.gz", 'wt') as f:
         json.dump(ds, f)
 
 if __name__ == "__main__":

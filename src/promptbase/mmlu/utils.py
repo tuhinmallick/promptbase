@@ -102,15 +102,13 @@ def embed(text, model_name = "text-embedding-ada-002"):
     url = endpoint["url"]
 
     data = {"input": text, "model": model_name}
-    
+
     response = requests.post(url, headers=header, json=data, timeout=(30,600))
     data = response.json()['data']
     if type(text) == str:
         return data[0]["embedding"]
-    else:
-        sorted_data = sorted(data, key=lambda x: x["index"])
-        sorted_embeddings = [item["embedding"] for item in sorted_data]
-        return sorted_embeddings
+    sorted_data = sorted(data, key=lambda x: x["index"])
+    return [item["embedding"] for item in sorted_data]
 
 def embed_batch(texts, model_name="text-embedding-ada-002", batch_size=100):
     embeddings = []
@@ -150,8 +148,8 @@ def text_completion_impl(prompt, model="gpt-4-1106-preview", temperature=0, max_
             prompt = ''.join(f"<|im_start|>{message['role']}<|im_sep|>{message['content']}<|diff_marker|>" for message in prompt) + "<|im_start|>assistant"
     else:
         raise "Not supported"
-    
-    for retry in range(max_trial):
+
+    for _ in range(max_trial):
         last_status_code = 0
         try:
             time.sleep(random.uniform(0, 0.2))
@@ -172,23 +170,23 @@ def text_completion_impl(prompt, model="gpt-4-1106-preview", temperature=0, max_
             headers = endpoint['headers']
             if callable(headers):
                 headers = headers()
-            
+
             url = endpoint['url']
-            
+
             if model_config["type"] == "chat":
                 payload['messages'] = payload['prompt']
                 del payload['prompt'], payload['logprobs'], payload['echo']
 
-            logging.info("Request:" + str(payload))
+            logging.info(f"Request:{payload}")
             r = s.post(url,  
                 headers = headers,
                 json = payload,
                 timeout = 200
             )
-            
+
             last_response = r.text
             last_status_code = r.status_code
-            logging.info(f"{last_status_code} Response:\n" + last_response)
+            logging.info(f"{last_status_code} Response:\n{last_response}")
             if r.status_code == 400 and "The response was filtered due to the prompt triggering Azure OpenAI" in r.text and openai_configs.filtered_message is not None:
                 row = json.loads(r.content)
                 row['text'] = openai_configs.filtered_message
@@ -202,7 +200,7 @@ def text_completion_impl(prompt, model="gpt-4-1106-preview", temperature=0, max_
                     if response["choices"][k]["finish_reason"] == "content_filter":
                         response["choices"][k]["text"] = openai_configs.filtered_message
 
-                
+
                 if model_config["type"] == "chat":
                     for k in range(len(response["choices"])):
                         if "message" in response["choices"][k]:
@@ -212,22 +210,17 @@ def text_completion_impl(prompt, model="gpt-4-1106-preview", temperature=0, max_
                 if (len(response["choices"]) == 1):
                     text = response["choices"][0]["text"]
                 else:
-                    text = []
-                    for r in response["choices"]:
-                        text.append(r["text"])
-                
+                    text = [r["text"] for r in response["choices"]]
                 return {'response': response, 'text': text, 'success': True}
         except Exception as e:
             logging.exception("Error occurred during HTTP calls in text_completion.")
-        
-        filtered_warning = False
-        for msg in openai_configs.busy_message:
-            if msg in last_response:
-                filtered_warning = True
 
+        filtered_warning = any(
+            msg in last_response for msg in openai_configs.busy_message
+        )
         if not filtered_warning and last_status_code != 429:
-            logging.warning(f"{last_status_code} Response:\n" + last_response)
-        
+            logging.warning(f"{last_status_code} Response:\n{last_response}")
+
         if last_status_code not in [429, 500, 502, 503, 424]:
             break
     return {'error': last_response, 'success': False}
